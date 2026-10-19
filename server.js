@@ -1,91 +1,131 @@
+
 const express = require('express');
 const QRCode = require('qrcode');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================
-// BẢNG ÁNH XẠ MÃ NGÂN HÀNG (TEXT -> BIN)
+// DANH SÁCH NGÂN HÀNG: TÊN, VIẾT TẮT, BIN
 // ==========================================
-const BANK_MAPPING = {
-    "ICB": "970415",
-    "VCB": "970436",
-    "BIDV": "970418",
-    "VBA": "970405",
-    "OCB": "970448",
-    "MB": "970422",
-    "TCB": "970407",
-    "ACB": "970416",
-    "VPB": "970432",
-    "TPB": "970423",
-    "STB": "970403",
-    "HDB": "970437",
-    "VCCB": "970454",
-    "SCB": "970429",
-    "VIB": "970441",
-    "SHB": "970443",
-    "EIB": "970431",
-    "MSB": "970426",
-    "CAKE": "546034",
-    "UBANK": "546035",
-    "TIMO": "963388",
-    "VTLMONEY": "971005",
-    "VNPTMONEY": "971011",
-    "SGICB": "970400",
-    "BAB": "970409",
-    "PVCB": "970412",
-    "MBV": "970414",
-    "NCB": "970419",
-    "SHBVN": "970424",
-    "ABB": "970425",
-    "VAB": "970427",
-    "NAB": "970428",
-    "PGB": "970430",
-    "VIETBANK": "970433",
-    "BVB": "970438",
-    "SEAB": "970440",
-    "COOPBANK": "970446",
-    "LPB": "970449",
-    "KLB": "970452",
-    "KBANK": "668888",
-    "KBHN": "970462",
-    "KEBHANAHCM": "970466",
-    "KEBHANAHN": "970467",
-    "MAFC": "977777",
-    "CITIBANK": "533948",
-    "KBHCM": "970463",
-    "VBSP": "999888",
-    "WVN": "970457",
-    "VRB": "970421",
-    "UOB": "970458",
-    "SCVN": "970410",
-    "PBVN": "970439",
-    "NHB HN": "801011",
-    "IVB": "970434",
-    "IBK - HCM": "970456",
-    "IBK - HN": "970455",
-    "HSBC": "458761",
-    "HLBVN": "970442",
-    "GPB": "970408",
-    "VIKKI": "970406",
-    "DBS": "796500",
-    "CIMB": "422589",
-    "CBB": "970444"
-};
+const BANKS = [
+    { bin: '970415', names: ['ICB', 'VietinBank', 'Vietin Bank', 'Ngân hàng Công thương Việt Nam'] },
+    { bin: '970436', names: ['VCB', 'Vietcombank', 'Vietcom Bank', 'Ngân hàng Ngoại thương Việt Nam'] },
+    { bin: '970418', names: ['BIDV', 'Ngân hàng Đầu tư và Phát triển Việt Nam'] },
+    { bin: '970405', names: ['VBA', 'Agribank', 'Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam'] },
+    { bin: '970448', names: ['OCB', 'Orient Commercial Bank', 'Ngân hàng Phương Đông'] },
+    { bin: '970422', names: ['MB', 'MBBank', 'MB Bank', 'Military Bank', 'Ngân hàng Quân đội'] },
+    { bin: '970407', names: ['TCB', 'Techcombank', 'Techcom Bank', 'Ngân hàng Kỹ thương Việt Nam'] },
+    { bin: '970416', names: ['ACB', 'Asia Commercial Bank', 'Ngân hàng Á Châu'] },
+    { bin: '970432', names: ['VPB', 'VPBank', 'VP Bank', 'Ngân hàng Việt Nam Thịnh Vượng'] },
+    { bin: '970423', names: ['TPB', 'TPBank', 'TP Bank', 'Ngân hàng Tiên Phong'] },
+    { bin: '970403', names: ['STB', 'Sacombank', 'Sac om Bank', 'Ngân hàng Sài Gòn Thương Tín'] },
+    { bin: '970437', names: ['HDB', 'HDBank', 'HD Bank', 'Ngân hàng Phát triển Thành phố Hồ Chí Minh'] },
+    { bin: '970454', names: ['VCCB', 'VietCapitalBank', 'BVBank', 'Ngân hàng Bản Việt'] },
+    { bin: '970429', names: ['SCB', 'Saigon Commercial Bank', 'Ngân hàng Sài Gòn'] },
+    { bin: '970441', names: ['VIB', 'Vietnam International Bank', 'Ngân hàng Quốc tế'] },
+    { bin: '970443', names: ['SHB', 'Saigon Hanoi Bank', 'Ngân hàng Sài Gòn - Hà Nội'] },
+    { bin: '970431', names: ['EIB', 'Eximbank', 'Export Import Bank', 'Ngân hàng Xuất nhập khẩu Việt Nam'] },
+    { bin: '970426', names: ['MSB', 'Maritime Bank', 'Ngân hàng Hàng hải Việt Nam'] },
+    { bin: '546034', names: ['CAKE'] },
+    { bin: '546035', names: ['UBANK', 'Ubank', 'U Bank'] },
+    { bin: '963388', names: ['TIMO', 'Timo'] },
+    { bin: '971005', names: ['VTLMONEY', 'Viettel Money'] },
+    { bin: '971011', names: ['VNPTMONEY', 'VNPT Money'] },
+    { bin: '970400', names: ['SGICB', 'Saigon Bank', 'Saigonbank', 'Ngân hàng Sài Gòn Công Thương'] },
+    { bin: '970409', names: ['BAB', 'BacABank', 'Bắc Á Bank', 'Ngân hàng Bắc Á'] },
+    { bin: '970412', names: ['PVCB', 'PVcomBank', 'PVcom Bank'] },
+    { bin: '970414', names: ['MBV', 'MBV Bank'] },
+    { bin: '970419', names: ['NCB', 'National Citizen Bank', 'Ngân hàng Quốc Dân'] },
+    { bin: '970424', names: ['SHBVN', 'ShinhanBank', 'Shinhan Bank', 'Ngân hàng Shinhan Việt Nam'] },
+    { bin: '970425', names: ['ABB', 'ABBANK', 'AB Bank', 'Ngân hàng An Bình'] },
+    { bin: '970427', names: ['VAB', 'VietABank', 'Viet A Bank', 'Ngân hàng Việt Á'] },
+    { bin: '970428', names: ['NAB', 'NamABank', 'Nam A Bank', 'Ngân hàng Nam Á'] },
+    { bin: '970430', names: ['PGB', 'PGBank', 'Petrolimex Bank', 'Ngân hàng Xăng dầu Petrolimex'] },
+    { bin: '970433', names: ['VIETBANK', 'VietBank', 'Ngân hàng Việt Nam Thương Tín'] },
+    { bin: '970438', names: ['BVB', 'BaoVietBank', 'Bao Viet Bank', 'Ngân hàng Bảo Việt'] },
+    { bin: '970440', names: ['SEAB', 'SeABank', 'South East Asia Bank', 'Ngân hàng Đông Nam Á'] },
+    { bin: '970446', names: ['COOPBANK', 'Co-op Bank', 'Ngân hàng Hợp tác xã Việt Nam'] },
+    { bin: '970449', names: ['LPB', 'LPBank', 'LienVietPostBank', 'Lien Viet Post Bank', 'Ngân hàng Bưu điện Liên Việt'] },
+    { bin: '970452', names: ['KLB', 'KienLongBank', 'Kien Long Bank', 'Ngân hàng Kiên Long'] },
+    { bin: '668888', names: ['KBANK', 'KBank', 'Kasikornbank'] },
+    { bin: '970462', names: ['KBHN'] },
+    { bin: '970466', names: ['KEBHANAHCM', 'KEB Hana HCM'] },
+    { bin: '970467', names: ['KEBHANAHN', 'KEB Hana HN'] },
+    { bin: '977777', names: ['MAFC'] },
+    { bin: '533948', names: ['CITIBANK', 'Citi Bank', 'Citi'] },
+    { bin: '970463', names: ['KBHCM'] },
+    { bin: '999888', names: ['VBSP', 'Ngân hàng Chính sách xã hội'] },
+    { bin: '970457', names: ['WVN', 'Woori', 'Woori Bank'] },
+    { bin: '970421', names: ['VRB', 'Vietnam Russia Bank', 'Ngân hàng Liên doanh Việt Nga'] },
+    { bin: '970458', names: ['UOB', 'United Overseas Bank'] },
+    { bin: '970410', names: ['SCVN', 'Standard Chartered Vietnam', 'Standard Chartered'] },
+    { bin: '970439', names: ['PBVN', 'Public Bank Vietnam', 'Public Bank'] },
+    { bin: '801011', names: ['NHB HN', 'NHBHN', 'Ngân hàng NongHyup Hà Nội'] },
+    { bin: '970434', names: ['IVB', 'Indovina Bank'] },
+    { bin: '970456', names: ['IBK - HCM', 'IBK HCM', 'IBKHCM', 'Industrial Bank of Korea HCM'] },
+    { bin: '970455', names: ['IBK - HN', 'IBK HN', 'IBKHN', 'Industrial Bank of Korea Hanoi'] },
+    { bin: '458761', names: ['HSBC'] },
+    { bin: '970442', names: ['HLBVN', 'Hong Leong Bank Vietnam', 'Hong Leong Bank'] },
+    { bin: '970408', names: ['GPB', 'GPBank', 'Global Petro Bank'] },
+    { bin: '970406', names: ['VIKKI', 'Vikki Bank', 'Vikki'] },
+    { bin: '796500', names: ['DBS', 'DBS Bank'] },
+    { bin: '422589', names: ['CIMB', 'CIMB Bank'] },
+    { bin: '970444', names: ['CBB', 'CBBank', 'Ngân hàng Xây dựng'] }
+];
+
+// Chuẩn hóa: không phân biệt hoa/thường, dấu tiếng Việt,
+// khoảng trắng, dấu gạch nối và dấu câu.
+function normalizeBankName(value) {
+    return String(value || '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+}
+
+// Tạo bảng tra cứu từ tất cả bí danh.
+const BANK_MAPPING = Object.create(null);
+const VALID_BANK_BINS = new Set();
+
+for (const bank of BANKS) {
+    VALID_BANK_BINS.add(bank.bin);
+
+    // Cho phép nhập trực tiếp mã BIN.
+    BANK_MAPPING[bank.bin] = bank.bin;
+
+    // Cho phép nhập tên viết tắt hoặc tên đầy đủ.
+    for (const name of bank.names) {
+        BANK_MAPPING[normalizeBankName(name)] = bank.bin;
+    }
+}
 
 // ==========================================
-// CÁC HÀM XỬ LÝ LOGIC CHUẨN VIETQR & CRC16
+// HÀM XỬ LÝ UTF-8
 // ==========================================
 function stringToUtf8ByteArray(str) {
     let out = [], p = 0;
+
     for (let i = 0; i < str.length; i++) {
         let c = str.charCodeAt(i);
+
         if (c < 128) {
             out[p++] = c;
         } else if (c < 2048) {
             out[p++] = (c >> 6) | 192;
             out[p++] = (c & 63) | 128;
-        } else if (((c & 0xFC00) == 0xD800) && (i + 1) < str.length && ((str.charCodeAt(i + 1) & 0xFC00) == 0xDC00)) {
-            c = 0x10000 + ((c & 0x03FF) << 10) + (str.charCodeAt(++i) & 0x03FF);
+        } else if (
+            (c & 0xFC00) === 0xD800 &&
+            i + 1 < str.length &&
+            (str.charCodeAt(i + 1) & 0xFC00) === 0xDC00
+        ) {
+            c = 0x10000 +
+                ((c & 0x03FF) << 10) +
+                (str.charCodeAt(++i) & 0x03FF);
+
             out[p++] = (c >> 18) | 240;
             out[p++] = ((c >> 12) & 63) | 128;
             out[p++] = ((c >> 6) & 63) | 128;
@@ -96,42 +136,54 @@ function stringToUtf8ByteArray(str) {
             out[p++] = (c & 63) | 128;
         }
     }
+
     return out;
 }
 
-function crc_ccitt_ffff(str) {
-    const CRC_POLY_CCITT = 0x1021;
-    const CRC_START_CCITT_FFFF = 0xFFFF;
-    let crc_tabccitt = new Array(256);
-    let isInit = false;
+// ==========================================
+// CRC16 CCITT-FALSE
+// ==========================================
+const CRC_TABLE = (() => {
+    const table = new Array(256);
 
-    if (!isInit) {
-        for (let i = 0; i < 256; i++) {
-            let crc = 0;
-            let c = i << 8;
-            for (let j = 0; j < 8; j++) {
-                if ((crc ^ c) & 0x8000) {
-                    crc = (crc << 1) ^ CRC_POLY_CCITT;
-                } else {
-                    crc = crc << 1;
-                }
-                c = c << 1;
+    for (let i = 0; i < 256; i++) {
+        let crc = 0;
+        let c = i << 8;
+
+        for (let j = 0; j < 8; j++) {
+            if ((crc ^ c) & 0x8000) {
+                crc = (crc << 1) ^ 0x1021;
+            } else {
+                crc <<= 1;
             }
-            crc_tabccitt[i] = crc & 0xFFFF;
+
+            c <<= 1;
         }
-        isInit = true;
+
+        table[i] = crc & 0xFFFF;
     }
 
-    let b = stringToUtf8ByteArray(str);
-    let crc = CRC_START_CCITT_FFFF;
-    for (let i = 0; i < b.length; i++) {
-        crc = ((crc << 8) ^ crc_tabccitt[((crc >> 8) ^ b[i]) & 0x00FF]) & 0xFFFF;
+    return table;
+})();
+
+function crc_ccitt_ffff(str) {
+    const bytes = stringToUtf8ByteArray(str);
+    let crc = 0xFFFF;
+
+    for (const byte of bytes) {
+        crc = ((crc << 8) ^
+            CRC_TABLE[((crc >> 8) ^ byte) & 0xFF]) & 0xFFFF;
     }
+
     return crc.toString(16).toUpperCase().padStart(4, '0');
 }
 
+// ==========================================
+// BỎ DẤU TIẾNG VIỆT TRONG NỘI DUNG CHUYỂN TIỀN
+// ==========================================
 function removeVietnameseDiacritics(str) {
-    if (!str) return "";
+    if (!str) return '';
+
     return str
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -140,60 +192,107 @@ function removeVietnameseDiacritics(str) {
 }
 
 // ==========================================
-// API ENDPOINT TRẢ VỀ ẢNH QR CODE
+// API TẠO ẢNH VIETQR
+// GET /api/qr?bank=VCB&account=0123456789
 // ==========================================
 app.get('/api/qr', async (req, res) => {
     try {
-        let inputBank = req.query.bank ? req.query.bank.trim().toUpperCase() : "";
-        const accountNumber = req.query.account ? req.query.account.trim() : "";
-        const amount = req.query.amount ? req.query.amount.trim() : "0";
-        const description = req.query.desc ? req.query.desc.trim() : "";
+        const inputBank = String(req.query.bank || '').trim();
+        const accountNumber = String(req.query.account || '').trim();
+        const amount = String(req.query.amount || '0').trim();
+        const description = String(req.query.desc || '').trim();
 
         if (!inputBank || !accountNumber) {
-            return res.status(400).send("Thiếu thông tin ngân hàng (bank) hoặc số tài khoản (account)!");
+            return res.status(400).send(
+                'Thiếu thông tin ngân hàng (bank) hoặc số tài khoản (account)!'
+            );
         }
 
-        // Tự động quy đổi từ mã chữ (VD: TPB) sang mã BIN (VD: 970423). 
-        // Nếu người dùng lỡ truyền vào mã BIN số luôn thì server vẫn nhận diện được.
-        let bankBin = BANK_MAPPING[inputBank] ? BANK_MAPPING[inputBank] : inputBank;
+        // Nhận diện BIN, tên viết tắt hoặc tên đầy đủ.
+        const normalizedBank = normalizeBankName(inputBank);
+        const bankBin = BANK_MAPPING[normalizedBank];
 
-        const stk = accountNumber;
+        if (!bankBin || !VALID_BANK_BINS.has(bankBin)) {
+            return res.status(400).send(
+                'Ngân hàng không hợp lệ hoặc chưa được hỗ trợ. ' +
+                'Vui lòng nhập tên ngân hàng, mã viết tắt hoặc mã BIN hợp lệ.'
+            );
+        }
+
+        if (!/^\d+$/.test(accountNumber)) {
+            return res.status(400).send(
+                'Số tài khoản chỉ được chứa chữ số.'
+            );
+        }
+
+        if (amount !== '' && !/^\d+$/.test(amount)) {
+            return res.status(400).send(
+                'Số tiền phải là số nguyên không âm.'
+            );
+        }
+
+        const sotien = amount || '0';
         const noidung = removeVietnameseDiacritics(description);
-        const sotien = amount;
 
-        // 1. Tag 00: Mã GUID của Napas (A000000727)
-        const tag00 = "0010A000000727";
-
-        // 2. Sub-tag 01 trong Tag 38 (Tổ hợp thông tin tài khoản)
-        const subAcc = `0006${bankBin}01${stk.length.toString().padStart(2, '0')}${stk}`;
-        const tag01 = `01${(subAcc.length + 12).toString().padStart(2, '0')}${subAcc}0208QRIBFTTA`;
-
-        // 3. Tag 38 hoàn chỉnh
-        const merchantInfo = tag00 + tag01;
-        const tag38 = `38${merchantInfo.length.toString().padStart(2, '0')}${merchantInfo}`;
-
-        // 4. Lắp ráp chuỗi chính
-        let chuoi1 = `000201010212`;
-        chuoi1 += tag38;
-        chuoi1 += `5303704`;
-        
-        if (Number(sotien) > 0) {
-            chuoi1 += `54${sotien.length.toString().padStart(2, '0')}${sotien}`;
+        if (sotien !== '0' && Number(sotien) > 0 &&
+            sotien.length > 99) {
+            return res.status(400).send('Số tiền không hợp lệ.');
         }
-        
-        chuoi1 += `5802VN`;
+
+        if (noidung.length > 95) {
+            return res.status(400).send(
+                'Nội dung chuyển tiền quá dài.'
+            );
+        }
+
+        // 1. Thông tin định danh Napas.
+        const tag00 = '0010A000000727';
+
+        // 2. Thông tin tài khoản nhận tiền.
+        const subAcc =
+            `0006${bankBin}01` +
+            `${accountNumber.length.toString().padStart(2, '0')}` +
+            accountNumber;
+
+        const tag01 =
+            `01${(subAcc.length + 12).toString().padStart(2, '0')}` +
+            `${subAcc}0208QRIBFTTA`;
+
+        // 3. Tag 38.
+        const merchantInfo = tag00 + tag01;
+        const tag38 =
+            `38${merchantInfo.length.toString().padStart(2, '0')}` +
+            merchantInfo;
+
+        // 4. Ghép dữ liệu QR.
+        let chuoi1 = '000201010212';
+        chuoi1 += tag38;
+        chuoi1 += '5303704';
+
+        if (Number(sotien) > 0) {
+            chuoi1 +=
+                `54${sotien.length.toString().padStart(2, '0')}` +
+                sotien;
+        }
+
+        chuoi1 += '5802VN';
 
         if (noidung) {
-            let tag62Sub = `08${noidung.length.toString().padStart(2, '0')}${noidung}`;
-            chuoi1 += `62${tag62Sub.length.toString().padStart(2, '0')}${tag62Sub}`;
+            const tag62Sub =
+                `08${noidung.length.toString().padStart(2, '0')}` +
+                noidung;
+
+            chuoi1 +=
+                `62${tag62Sub.length.toString().padStart(2, '0')}` +
+                tag62Sub;
         }
 
-        chuoi1 += `6304`;
+        chuoi1 += '6304';
 
         const crc = crc_ccitt_ffff(chuoi1);
         const qrDataFinal = chuoi1 + crc;
 
-        // Sinh ảnh PNG
+        // 5. Tạo ảnh PNG.
         const qrBuffer = await QRCode.toBuffer(qrDataFinal, {
             type: 'png',
             width: 500,
@@ -205,11 +304,12 @@ app.get('/api/qr', async (req, res) => {
         });
 
         res.setHeader('Content-Type', 'image/png');
+        res.setHeader('Cache-Control', 'no-store');
         res.send(qrBuffer);
 
     } catch (error) {
-        console.error(error);
-        res.status(500).send("Lỗi server khi tạo mã QR");
+        console.error('Lỗi tạo VietQR:', error);
+        res.status(500).send('Lỗi server khi tạo mã QR');
     }
 });
 
