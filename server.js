@@ -255,7 +255,7 @@ app.get('/api/qr', async (req, res) => {
             accountNumber;
 
         const tag01 =
-            `01${(subAcc.length + 12).toString().padStart(2, '0')}` +
+            `01${subAcc.length.toString().padStart(2, '0')}` +
             `${subAcc}0208QRIBFTTA`;
 
         // 3. Tag 38.
