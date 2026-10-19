@@ -161,10 +161,18 @@ app.get('/api/qr', async (req, res) => {
         const noidung = removeVietnameseDiacritics(description);
         const sotien = amount;
 
-        // Chuẩn hóa cấu trúc VietQR EMVCo
-        let merchantInfo = `0010A00000072701${bankBin.length + 14}0006${bankBin}01${stk.length.toString().padStart(2, '0')}${stk}0208QRIBFTTA`;
-        let tag38 = `38${(merchantInfo.length).toString().padStart(2, '0')}${merchantInfo}`;
+        // 1. Tag 00: Mã GUID của Napas (A000000727)
+        const tag00 = "0010A000000727";
 
+        // 2. Sub-tag 01 trong Tag 38 (Tổ hợp thông tin tài khoản)
+        const subAcc = `0006${bankBin}01${stk.length.toString().padStart(2, '0')}${stk}`;
+        const tag01 = `01${(subAcc.length + 12).toString().padStart(2, '0')}${subAcc}0208QRIBFTTA`;
+
+        // 3. Tag 38 hoàn chỉnh
+        const merchantInfo = tag00 + tag01;
+        const tag38 = `38${merchantInfo.length.toString().padStart(2, '0')}${merchantInfo}`;
+
+        // 4. Lắp ráp chuỗi chính
         let chuoi1 = `000201010212`;
         chuoi1 += tag38;
         chuoi1 += `5303704`;
