@@ -4,6 +4,75 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ==========================================
+// BẢNG ÁNH XẠ MÃ NGÂN HÀNG (TEXT -> BIN)
+// ==========================================
+const BANK_MAPPING = {
+    "ICB": "970415",
+    "VCB": "970436",
+    "BIDV": "970418",
+    "VBA": "970405",
+    "OCB": "970448",
+    "MB": "970422",
+    "TCB": "970407",
+    "ACB": "970416",
+    "VPB": "970432",
+    "TPB": "970423",
+    "STB": "970403",
+    "HDB": "970437",
+    "VCCB": "970454",
+    "SCB": "970429",
+    "VIB": "970441",
+    "SHB": "970443",
+    "EIB": "970431",
+    "MSB": "970426",
+    "CAKE": "546034",
+    "UBANK": "546035",
+    "TIMO": "963388",
+    "VTLMONEY": "971005",
+    "VNPTMONEY": "971011",
+    "SGICB": "970400",
+    "BAB": "970409",
+    "PVCB": "970412",
+    "MBV": "970414",
+    "NCB": "970419",
+    "SHBVN": "970424",
+    "ABB": "970425",
+    "VAB": "970427",
+    "NAB": "970428",
+    "PGB": "970430",
+    "VIETBANK": "970433",
+    "BVB": "970438",
+    "SEAB": "970440",
+    "COOPBANK": "970446",
+    "LPB": "970449",
+    "KLB": "970452",
+    "KBANK": "668888",
+    "KBHN": "970462",
+    "KEBHANAHCM": "970466",
+    "KEBHANAHN": "970467",
+    "MAFC": "977777",
+    "CITIBANK": "533948",
+    "KBHCM": "970463",
+    "VBSP": "999888",
+    "WVN": "970457",
+    "VRB": "970421",
+    "UOB": "970458",
+    "SCVN": "970410",
+    "PBVN": "970439",
+    "NHB HN": "801011",
+    "IVB": "970434",
+    "IBK - HCM": "970456",
+    "IBK - HN": "970455",
+    "HSBC": "458761",
+    "HLBVN": "970442",
+    "GPB": "970408",
+    "VIKKI": "970406",
+    "DBS": "796500",
+    "CIMB": "422589",
+    "CBB": "970444"
+};
+
+// ==========================================
 // CÁC HÀM XỬ LÝ LOGIC CHUẨN VIETQR & CRC16
 // ==========================================
 function stringToUtf8ByteArray(str) {
@@ -75,34 +144,48 @@ function removeVietnameseDiacritics(str) {
 // ==========================================
 app.get('/api/qr', async (req, res) => {
     try {
-        const bankBin = req.query.bank;
-        const accountNumber = req.query.account;
-        const amount = req.query.amount || "0";
-        const description = req.query.desc || "";
+        let inputBank = req.query.bank ? req.query.bank.trim().toUpperCase() : "";
+        const accountNumber = req.query.account ? req.query.account.trim() : "";
+        const amount = req.query.amount ? req.query.amount.trim() : "0";
+        const description = req.query.desc ? req.query.desc.trim() : "";
 
-        if (!bankBin || !accountNumber) {
-            return res.status(400).send("Thiếu thông tin mã ngân hàng (bank) hoặc số tài khoản (account)!");
+        if (!inputBank || !accountNumber) {
+            return res.status(400).send("Thiếu thông tin ngân hàng (bank) hoặc số tài khoản (account)!");
         }
+
+        // Tự động quy đổi từ mã chữ (VD: TPB) sang mã BIN (VD: 970423). 
+        // Nếu người dùng lỡ truyền vào mã BIN số luôn thì server vẫn nhận diện được.
+        let bankBin = BANK_MAPPING[inputBank] ? BANK_MAPPING[inputBank] : inputBank;
 
         const stk = accountNumber;
         const noidung = removeVietnameseDiacritics(description);
         const sotien = amount;
-        const lenStk = stk.length;
-        const lenSotien = sotien.toString().length;
-        const lenNoidung = noidung.length;
 
-        // Lắp ráp chuỗi tiêu chuẩn EMVCo VietQR
-        let chuoi1 = `00020101021138${lenStk + 44}0010A00000072701${lenStk + 14}0006${bankBin}01${lenStk.toString().padStart(2, '0')}${stk}0208QRIBFTTA5303704`;
-        chuoi1 += Number(sotien) > 0 ? `54${lenSotien.toString().padStart(2, '0')}${sotien}` : "";
-        chuoi1 += `5802VN62`;
-        chuoi1 += noidung ? `${(lenNoidung + 4).toString().padStart(2, '0')}08${lenNoidung.toString().padStart(2, '0')}${noidung}` : "";
+        // Chuẩn hóa cấu trúc VietQR EMVCo
+        let merchantInfo = `0010A00000072701${bankBin.length + 14}0006${bankBin}01${stk.length.toString().padStart(2, '0')}${stk}0208QRIBFTTA`;
+        let tag38 = `38${(merchantInfo.length).toString().padStart(2, '0')}${merchantInfo}`;
+
+        let chuoi1 = `000201010212`;
+        chuoi1 += tag38;
+        chuoi1 += `5303704`;
+        
+        if (Number(sotien) > 0) {
+            chuoi1 += `54${sotien.length.toString().padStart(2, '0')}${sotien}`;
+        }
+        
+        chuoi1 += `5802VN`;
+
+        if (noidung) {
+            let tag62Sub = `08${noidung.length.toString().padStart(2, '0')}${noidung}`;
+            chuoi1 += `62${tag62Sub.length.toString().padStart(2, '0')}${tag62Sub}`;
+        }
+
         chuoi1 += `6304`;
 
-        // Tính mã CRC cuối chuỗi
         const crc = crc_ccitt_ffff(chuoi1);
         const qrDataFinal = chuoi1 + crc;
 
-        // Sinh ảnh QR dạng Buffer (PNG) và gửi về client (VBA Excel)
+        // Sinh ảnh PNG
         const qrBuffer = await QRCode.toBuffer(qrDataFinal, {
             type: 'png',
             width: 500,
