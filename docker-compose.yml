@@ -1,0 +1,7 @@
+services:
+  vietqr-api:
+    build: .
+    container_name: vietqr-server-app
+    restart: always
+    ports:
+      - "3000:3000"
