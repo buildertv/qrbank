@@ -188,7 +188,10 @@ function removeVietnameseDiacritics(str) {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd')
-        .replace(/Đ/g, 'D');
+        .replace(/Đ/g, 'D')
+        .replace(/[^a-zA-Z0-9\s.,]/g, '') // Chỉ giữ lại chữ, số, khoảng trắng, dấu . và ,
+        .trim()                          // Xóa khoảng trắng thừa ở đầu và cuối
+        .substring(0, 50);               // Cắt chuỗi tối đa 50 ký tự
 }
 
 // ==========================================
